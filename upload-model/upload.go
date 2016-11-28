@@ -8,7 +8,7 @@ import (
   // "github.com/swatkat/gotrntmetainfoparser"
 )
 
-func Process(uuid []byte, pool redis.Pool) {
+func Process(uuid []byte, pool *redis.Pool) {
   fmt.Printf("upload.Process: %s\n", uuid)
 
   conn := pool.Get()
