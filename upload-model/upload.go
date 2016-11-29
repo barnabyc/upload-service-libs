@@ -2,7 +2,6 @@ package upload
 
 import (
   "fmt"
-  "log"
   "github.com/garyburd/redigo/redis"
   // "github.com/swatkat/gotrntmetainfoparser"
 )
