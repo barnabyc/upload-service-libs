@@ -3,7 +3,7 @@ package upload
 import (
   "fmt"
   "github.com/garyburd/redigo/redis"
-  // "github.com/swatkat/gotrntmetainfoparser"
+  "github.com/swatkat/gotrntmetainfoparser"
 )
 
 func Process(uuid []byte, pool *redis.Pool) {
@@ -21,11 +21,13 @@ func Process(uuid []byte, pool *redis.Pool) {
 
   fmt.Printf("upload.Path: %s\n", uploadPath)
 
-  // MetaInfo::ReadTorrentMetaInfoFile( uploadPath )
-  // MetaInfo::DumpTorrentMetaInfo()
+  mi := gotrntmetainfoparser.MetaInfo{}
 
-  fmt.Printf("todo: process the upload\n")
-  // todo: parse newly upload torrent
+  if mi.ReadTorrentMetaInfoFile( uploadPath ) {
+    mi.DumpTorrentMetaInfo()
+  } else {
+    fmt.Printf("error: could not parse upload")
+  }
 }
 
 
