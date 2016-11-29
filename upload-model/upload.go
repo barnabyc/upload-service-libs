@@ -3,7 +3,6 @@ package upload
 import (
   "fmt"
   "log"
-  "bytes"
   "github.com/garyburd/redigo/redis"
   // "github.com/swatkat/gotrntmetainfoparser"
 )
@@ -14,13 +13,10 @@ func Process(uuid []byte, pool *redis.Pool) {
   conn := pool.Get()
   defer conn.Close()
 
-  n := bytes.IndexByte(uuid, 0)
-  uploadKey := string(uuid[:n])
-
-  uploadPath, err := redis.String(conn.Do("HGET", uploadKey, "path"))
+  uploadPath, err := redis.String(conn.Do("HGET", string(uuid), "path"))
 
   if err != nil {
-    log.Printf("Error getting upload detail %s\n", err)
+    fmt.Printf("Error getting upload detail %s\n", err)
     return
   }
 
