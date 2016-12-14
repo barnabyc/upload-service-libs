@@ -2,8 +2,7 @@ package upload
 
 import (
   "fmt"
-  "os"
-  "path/filepath"
+  "bytes"
   "github.com/jackpal/bencode-go"
   "github.com/garyburd/redigo/redis"
   "github.com/swatkat/gotrntmetainfoparser"
@@ -15,28 +14,19 @@ func Process(uuid []byte, pool *redis.Pool) {
   conn := pool.Get()
   defer conn.Close()
 
-  uploadPath, err := redis.String(conn.Do("HGET", string(uuid), "path"))
+  file, err := redis.String(conn.Do("HGET", string(uuid), "file"))
 
   if err != nil {
-    fmt.Printf("Error getting upload detail %s\n", err)
+    fmt.Printf("Error getting upload %s\n", err)
     return
   }
-
-  fmt.Printf("upload.Path: %s\n", uploadPath)
 
   mi := gotrntmetainfoparser.MetaInfo{}
 
-  fmt.Printf("debug: upload file ext: %s\n", filepath.Ext(uploadPath))
-
-  file, er := os.Open(uploadPath)
-  if er != nil {
-    fmt.Printf("debug: could not open file: %s\n", er)
-    return
-  }
-  defer file.Close()
+  buf := bytes.NewBufferString( file )
 
   // Decode bencoded metainfo file.
-  fileMetaData, er := bencode.Decode(file)
+  fileMetaData, er := bencode.Decode( buf )
   if er != nil {
     fmt.Printf("debug: could not decode file: %s\n", er)
     return
@@ -49,11 +39,7 @@ func Process(uuid []byte, pool *redis.Pool) {
     return
   }
 
-
-
-
-
-  if mi.ReadTorrentMetaInfoFile( uploadPath ) {
+  if mi.ReadTorrentMetaInfoFile( buf ) {
     mi.DumpTorrentMetaInfo()
   } else {
     fmt.Printf("error: could not parse upload\n")
