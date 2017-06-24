@@ -5,6 +5,7 @@ import (
   "github.com/garyburd/redigo/redis"
   "github.com/oklog/ulid"
   "log"
+  "math/rand"
   "strings"
   "time"
 )
