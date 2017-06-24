@@ -9,13 +9,13 @@ import (
   "github.com/swatkat/gotrntmetainfoparser" // todo: fork and clean-up
 )
 
-func Process(ulid ULID, pool *redis.Pool) {
-  fmt.Printf("upload.Process: %s\n", ulid)
+func Process(id ulid.ULID, pool *redis.Pool) {
+  fmt.Printf("upload.Process: %s\n", id)
 
   conn := pool.Get()
   defer conn.Close()
 
-  file, err := redis.String(conn.Do("HGET", ulid, "file"))
+  file, err := redis.String(conn.Do("HGET", id, "file"))
 
   if err != nil {
     fmt.Printf("Error getting upload %s\n", err)
