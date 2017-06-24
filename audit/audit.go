@@ -21,7 +21,7 @@ type person struct {
 type AuditEvent struct {
   Timestamp time.Time
   Type      string
-  Trail     ULID
+  Trail     ulid.ULID
   Status    string
   Bytes     int
   Username  string
