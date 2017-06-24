@@ -6,7 +6,7 @@ import (
   "fmt"
   "github.com/garyburd/redigo/redis"
   "github.com/jackpal/bencode-go"
-  "github.com/oklog/ulid"
+  // "github.com/oklog/ulid"
   "time"
   // "github.com/swatkat/gotrntmetainfoparser" // todo: fork and clean-up
 )
@@ -44,13 +44,13 @@ type MetaInfo struct {
   Encoding     string     "encoding"
 }
 
-func Process(id ulid.ULID, pool *redis.Pool) {
-  fmt.Printf("upload.Process: %s\n", id)
+func Process(ulid []byte, pool *redis.Pool) {
+  fmt.Printf("upload.Process: %s\n", ulid)
 
   conn := pool.Get()
   defer conn.Close()
 
-  file, err := redis.String(conn.Do("HGET", id, "file"))
+  file, err := redis.String(conn.Do("HGET", ulid, "file"))
 
   if err != nil {
     fmt.Printf("Error getting upload %s\n", err)
