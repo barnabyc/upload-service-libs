@@ -7,6 +7,7 @@ import (
   "github.com/garyburd/redigo/redis"
   "github.com/jackpal/bencode-go"
   // "github.com/oklog/ulid"
+  "reflect"
   "time"
   // "github.com/swatkat/gotrntmetainfoparser" // todo: fork and clean-up
 )
@@ -51,7 +52,7 @@ func Process(ulid []byte, pool *redis.Pool) {
   defer conn.Close()
 
   file, err := redis.String(conn.Do("HGET", ulid, "file"))
-  fmt.Printf("debug: file %s\n", file)
+  fmt.Printf("debug: file %s - %s\n", reflect.TypeOf(file), file)
 
   if err != nil {
     fmt.Printf("Error getting upload %s\n", err)
