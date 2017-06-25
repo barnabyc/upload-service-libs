@@ -39,31 +39,58 @@ func getDateStamp(t time.Time) string {
 //   return fmt.Sprintf("%02d%02d%02d.%d", t.Hour(), t.Minute(), t.Second(), t.Nanosecond())
 // }
 
-func buildKey(event AuditEvent, now time.Time) string {
-  stamp := getDateStamp(now)
+func buildKey(event AuditEvent) string {
+  stamp := getDateStamp(event.Timestamp)
   components := []string{AUDIT_EVENTS_KEY_PREFIX, event.Type, stamp}
 
   return strings.Join(components, ":")
 }
 
-func logEvent() {
+func buildSimpleEvent(thing interface{}, detail string) AuditEvent {
+  // Timestamp time.Time
+  // Type      string
+  // Trail     ulid.ULID
+  // Status    string
+  // Bytes     int
+  // Username  string
+  // Ref       string
+  now := time.Now().UTC()
 
+  return AuditEvent{
+    now,
+    "upload", // todo use the interface to get the type
+    newULID(now),
+    "created",   // todo define statuses
+    0,           // todo use upload's size
+    "mrgiggles", // todo "
+    detail,      // todo "
+  }
+
+}
+
+func newULID(now time.Time) ulid.ULID {
+  entropy := rand.New(rand.NewSource(now.UnixNano()))
+  return ulid.MustNew(ulid.Timestamp(now), entropy)
 }
 
 func logTrail() {
 
 }
 
+func LogSimple(conn redis.Conn, thing interface{}, detail string) {
+  auditEvent := buildSimpleEvent(thing, detail)
+  Log(conn, auditEvent)
+}
+
 func Log(conn redis.Conn, event AuditEvent) {
   now := time.Now().UTC()
 
-  entropy := rand.New(rand.NewSource(now.UnixNano()))
-  trailMarker := ulid.MustNew(ulid.Timestamp(now), entropy)
+  trailMarker := newULID(now)
 
   // store in redis
   _, err := conn.Do(
     "HMSET",
-    buildKey(event, now),
+    buildKey(event),
     "trail", trailMarker,
     "status", event.Status,
     "bytes", event.Bytes,
