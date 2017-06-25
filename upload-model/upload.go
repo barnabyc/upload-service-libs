@@ -51,6 +51,7 @@ func Process(ulid []byte, pool *redis.Pool) {
   defer conn.Close()
 
   file, err := redis.String(conn.Do("HGET", ulid, "file"))
+  fmt.Printf("debug: file %s\n", file)
 
   if err != nil {
     fmt.Printf("Error getting upload %s\n", err)
