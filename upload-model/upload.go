@@ -3,9 +3,9 @@ package upload
 import (
   "bytes"
   "crypto/sha1"
-  "fmt"
   "github.com/garyburd/redigo/redis"
   "github.com/jackpal/bencode-go"
+  "log"
   // "github.com/oklog/ulid"
   "reflect"
   "time"
@@ -46,16 +46,16 @@ type MetaInfo struct {
 }
 
 func Process(ulid []byte, pool *redis.Pool) {
-  fmt.Printf("upload.Process: %s\n", ulid)
+  log.Printf("upload.Process: %s\n", ulid)
 
   conn := pool.Get()
   defer conn.Close()
 
   file, err := redis.Bytes(conn.Do("HGET", ulid, "file"))
-  fmt.Printf("debug: file %s\n", reflect.TypeOf(file))
+  log.Printf("debug: file %s\n", reflect.TypeOf(file))
 
   if err != nil {
-    fmt.Printf("Error getting upload %s\n", err)
+    log.Printf("Error getting upload %s\n", err)
     return
   }
 
@@ -66,7 +66,7 @@ func Process(ulid []byte, pool *redis.Pool) {
   if mi.ReadTorrentMetaInfo(buf) {
     mi.DumpTorrentMetaInfo()
   } else {
-    fmt.Printf("error: could not parse upload\n")
+    log.Printf("error: could not parse upload\n")
   }
 }
 
@@ -74,14 +74,14 @@ func (metaInfo *MetaInfo) ReadTorrentMetaInfo(buffer *bytes.Buffer) bool {
   // Decode bencoded metainfo file.
   fileMetaData, er := bencode.Decode(buffer)
   if er != nil {
-    fmt.Printf("debug: could not decode file: %s\n", er)
+    log.Printf("debug: could not decode file: %s\n", er)
     return false
   }
 
   // fileMetaData is map of maps of... maps. Get top level map.
   metaInfoMap, ok := fileMetaData.(map[string]interface{})
   if !ok {
-    fmt.Printf("debug: could not get top level map\n")
+    log.Printf("debug: could not get top level map\n")
     return false
   }
 
@@ -132,34 +132,34 @@ func (metaInfo *MetaInfo) ReadTorrentMetaInfo(buffer *bytes.Buffer) bool {
 
 // Print torrent meta info struct data.
 func (metaInfo *MetaInfo) DumpTorrentMetaInfo() {
-  fmt.Println("Announce:", metaInfo.Announce)
-  fmt.Println("Announce List:")
+  log.Println("Announce:", metaInfo.Announce)
+  log.Println("Announce List:")
   for _, anncListEntry := range metaInfo.AnnounceList {
     for _, elem := range anncListEntry {
-      fmt.Println("    ", elem)
+      log.Println("    ", elem)
     }
   }
   strCreationDate := time.Unix(metaInfo.CreationDate, 0)
-  fmt.Println("Creation Date:", strCreationDate)
-  fmt.Println("Comment:", metaInfo.Comment)
-  fmt.Println("Created By:", metaInfo.CreatedBy)
-  fmt.Println("Encoding:", metaInfo.Encoding)
-  fmt.Printf("InfoHash: %X\n", metaInfo.InfoHash)
-  fmt.Println("Info:")
-  fmt.Println("    Piece Length:", metaInfo.Info.PieceLength)
+  log.Println("Creation Date:", strCreationDate)
+  log.Println("Comment:", metaInfo.Comment)
+  log.Println("Created By:", metaInfo.CreatedBy)
+  log.Println("Encoding:", metaInfo.Encoding)
+  log.Printf("InfoHash: %X\n", metaInfo.InfoHash)
+  log.Println("Info:")
+  log.Println("    Piece Length:", metaInfo.Info.PieceLength)
   piecesList := metaInfo.getPiecesList()
-  fmt.Printf("    Pieces:%X -- %X\n", len(piecesList), len(metaInfo.Info.Pieces)/20)
-  fmt.Println("    File Duration:", metaInfo.Info.FileDuration)
-  fmt.Println("    File Media:", metaInfo.Info.FileMedia)
-  fmt.Println("    Private:", metaInfo.Info.Private)
-  fmt.Println("    Name:", metaInfo.Info.Name)
-  fmt.Println("    Length:", metaInfo.Info.Length)
-  fmt.Println("    Md5sum:", metaInfo.Info.Md5sum)
-  fmt.Println("    Files:")
+  log.Printf("    Pieces:%X -- %X\n", len(piecesList), len(metaInfo.Info.Pieces)/20)
+  log.Println("    File Duration:", metaInfo.Info.FileDuration)
+  log.Println("    File Media:", metaInfo.Info.FileMedia)
+  log.Println("    Private:", metaInfo.Info.Private)
+  log.Println("    Name:", metaInfo.Info.Name)
+  log.Println("    Length:", metaInfo.Info.Length)
+  log.Println("    Md5sum:", metaInfo.Info.Md5sum)
+  log.Println("    Files:")
   for _, fileDict := range metaInfo.Info.Files {
-    fmt.Println("        Length:", fileDict.Length)
-    fmt.Println("        Path:", fileDict.Path)
-    fmt.Println("        Md5sum:", fileDict.Md5sum)
+    log.Println("        Length:", fileDict.Length)
+    log.Println("        Path:", fileDict.Path)
+    log.Println("        Md5sum:", fileDict.Md5sum)
   }
 }
 
