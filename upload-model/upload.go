@@ -61,7 +61,7 @@ func Process(ulid []byte, pool *redis.Pool) {
 
   mi := MetaInfo{}
 
-  buf := bytes.NewBufferString(file)
+  buf := bytes.NewBuffer(file)
 
   if mi.ReadTorrentMetaInfo(buf) {
     mi.DumpTorrentMetaInfo()
