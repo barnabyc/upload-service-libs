@@ -148,7 +148,7 @@ func (metaInfo *MetaInfo) DumpTorrentMetaInfo() {
   log.Println("Info:")
   log.Println("    Piece Length:", metaInfo.Info.PieceLength)
   piecesList := metaInfo.getPiecesList()
-  log.Printf("    Pieces:%X -- %X\n", len(piecesList), len(metaInfo.Info.Pieces)/20)
+  log.Printf("    Pieces: %d -- %d\n", len(piecesList), len(metaInfo.Info.Pieces))
   log.Println("    File Duration:", metaInfo.Info.FileDuration)
   log.Println("    File Media:", metaInfo.Info.FileMedia)
   log.Println("    Private:", metaInfo.Info.Private)
