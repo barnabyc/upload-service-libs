@@ -3,6 +3,7 @@ package audit
 import (
   "encoding/json"
   "fmt"
+  "github.com/barnabyc/upload-service-libs/upload-model"
   "github.com/garyburd/redigo/redis"
   "github.com/oklog/ulid"
   "log"
@@ -26,21 +27,13 @@ type AuditEvent struct {
   Ref        string    `json:"ref"`
 }
 
-// todo: import this properly for reuse
-type Upload struct {
-  Name     string `json:"name"`
-  Type     string `json:"type"`
-  Category string `json:"category"`
-  Path     string `json:"path"`
-}
-
 type Activity struct {
-  Activity string `json:"activity"`
-  Result   string `json:"result"`
-  Infohash string `json:"infohash"`
-  User     string `json:"user"`
-  Key      string `json:"key"`
-  Ref      Upload `json:"ref"`
+  Activity string        `json:"activity"`
+  Result   string        `json:"result"`
+  Infohash string        `json:"infohash"`
+  User     string        `json:"user"`
+  Key      string        `json:"key"`
+  Ref      upload.Upload `json:"ref"`
 }
 
 func getDateStamp(t time.Time) string {
@@ -85,7 +78,7 @@ func buildSimpleEvent(thing interface{}, detail string) AuditEvent {
 
 func buildActivity(thing interface{}, detail string) Activity {
   // todo: set these values based on provided
-  upload := thing.(Upload)
+  upload := thing.(upload.Upload)
 
   return Activity{
     "upload",

@@ -12,6 +12,13 @@ import (
   // "github.com/swatkat/gotrntmetainfoparser" // todo: fork and clean-up
 )
 
+type Upload struct {
+  Name     string `redis:"name"     json:"name"`
+  Type     string `redis:"type"     json:"type"`
+  Category string `redis:"category" json:"category"`
+  Path     string `redis:"path"     json:"path"`
+}
+
 // Structs into which torrent metafile is
 // parsed and stored into.
 type FileDict struct {
