@@ -11,22 +11,35 @@ import (
 )
 
 const (
-  AUDIT_EVENTS_KEY_PREFIX = "audit:events"
+  AUDIT_EVENTS_KEYSPACE   = "audit:events"
+  USERS_ACTIVITY_KEYSPACE = "users:activity"
 )
 
-type person struct {
-  name string
-  age  int
+type AuditEvent struct {
+  Timestamp  time.Time `json:"timestamp"`
+  Type       string    `json:"type"`
+  AuditTrail ulid.ULID `json:"audit_trail"`
+  Status     string    `json:"status"`
+  Bytes      int       `json:"bytes"`
+  User       string    `json:"user"`
+  Ref        string    `json:"ref"`
 }
 
-type AuditEvent struct {
-  Timestamp time.Time
-  Type      string
-  Trail     ulid.ULID
-  Status    string
-  Bytes     int
-  Username  string
-  Ref       string
+// todo: import this properly for reuse
+type Upload struct {
+  Name     string `json:"name"`
+  Type     string `json:"type"`
+  Category string `json:"category"`
+  Path     string `json:"path"`
+}
+
+type Activity struct {
+  Activity string `json:"activity"`
+  Result   string `json:"result"`
+  Infohash string `json:"infohash"`
+  User     string `json:"user"`
+  Key      string `json:"key"`
+  Ref      Upload `json:"ref"`
 }
 
 func getDateStamp(t time.Time) string {
@@ -39,21 +52,23 @@ func getDateStamp(t time.Time) string {
 //   return fmt.Sprintf("%02d%02d%02d.%d", t.Hour(), t.Minute(), t.Second(), t.Nanosecond())
 // }
 
-func buildKey(event AuditEvent) string {
+func buildAuditKey(event AuditEvent) string {
+  // group the audit events at day granularity
   stamp := getDateStamp(event.Timestamp)
-  components := []string{AUDIT_EVENTS_KEY_PREFIX, event.Type, stamp}
+  components := []string{AUDIT_EVENTS_KEYSPACE, event.Type, stamp}
+
+  return strings.Join(components, ":")
+}
+
+func buildActivityKey(activity Activity) string {
+  // todo: build this from the Activity
+  username := "captainwiggles"
+  components := []string{USERS_ACTIVITY_KEYSPACE, username}
 
   return strings.Join(components, ":")
 }
 
 func buildSimpleEvent(thing interface{}, detail string) AuditEvent {
-  // Timestamp time.Time
-  // Type      string
-  // Trail     ulid.ULID
-  // Status    string
-  // Bytes     int
-  // Username  string
-  // Ref       string
   now := time.Now().UTC()
 
   return AuditEvent{
@@ -65,7 +80,18 @@ func buildSimpleEvent(thing interface{}, detail string) AuditEvent {
     "mrgiggles", // todo "
     detail,      // todo "
   }
+}
 
+func buildActivity(thing interface{}, detail string) Activity {
+  // todo: set these values based on provided
+  return Activity{
+    "upload",
+    "created",
+    "<no infohash until processed>",
+    "captainwiggles",
+    detail,
+    thing,
+  }
 }
 
 func newULID(now time.Time) ulid.ULID {
@@ -73,16 +99,15 @@ func newULID(now time.Time) ulid.ULID {
   return ulid.MustNew(ulid.Timestamp(now), entropy)
 }
 
-func logTrail() {
-
-}
-
-func LogSimple(conn redis.Conn, thing interface{}, detail string) {
+func Log(conn redis.Conn, thing interface{}, detail string) {
   auditEvent := buildSimpleEvent(thing, detail)
-  Log(conn, auditEvent)
+  LogEvent(conn, auditEvent)
+
+  activity := buildActivity(thing, detail)
+  LogUserActivity(conn, activity)
 }
 
-func Log(conn redis.Conn, event AuditEvent) {
+func LogEvent(conn redis.Conn, event AuditEvent) {
   now := time.Now().UTC()
 
   trailMarker := newULID(now)
@@ -90,7 +115,7 @@ func Log(conn redis.Conn, event AuditEvent) {
   // store in redis
   _, err := conn.Do(
     "HMSET",
-    buildKey(event),
+    buildAuditKey(event),
     "trail", trailMarker,
     "status", event.Status,
     "bytes", event.Bytes,
@@ -104,4 +129,18 @@ func Log(conn redis.Conn, event AuditEvent) {
   }
 
   log.Printf("Audit event logged: %s\n", event)
+}
+
+func LogUserActivity(conn redis.Conn, activity Activity) {
+  json, err := json.Marshal(activity)
+  if err != nil {
+    log.Printf("Error converting AuditEvent to JSON: %s, %s\n", err, activity)
+    return
+  }
+
+  _, err := conn.Do(
+    "LPUSH",
+    buildActivityKey(activity),
+    json,
+  )
 }
