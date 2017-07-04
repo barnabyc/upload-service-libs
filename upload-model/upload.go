@@ -9,6 +9,7 @@ import (
   "github.com/jackpal/bencode-go"
   "log"
   // "github.com/oklog/ulid"
+  "fmt"
   "reflect"
   "time"
   // "github.com/swatkat/gotrntmetainfoparser" // todo: fork and clean-up
@@ -88,7 +89,7 @@ func Process(path []byte, pool *redis.Pool) {
       uploadType,
       uploadCategory,
       string(path),
-      mi.InfoHash,
+      fmt.Sprintf(mi.InfoHash),
     }
 
     audit.Log(conn, p, "no additional detail")
