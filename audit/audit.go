@@ -1,6 +1,7 @@
 package audit
 
 import (
+  "encoding/json"
   "fmt"
   "github.com/garyburd/redigo/redis"
   "github.com/oklog/ulid"
@@ -62,8 +63,8 @@ func buildAuditKey(event AuditEvent) string {
 
 func buildActivityKey(activity Activity) string {
   // todo: build this from the Activity
-  username := "captainwiggles"
-  components := []string{USERS_ACTIVITY_KEYSPACE, username}
+  user := "captainwiggles"
+  components := []string{USERS_ACTIVITY_KEYSPACE, user}
 
   return strings.Join(components, ":")
 }
@@ -84,13 +85,15 @@ func buildSimpleEvent(thing interface{}, detail string) AuditEvent {
 
 func buildActivity(thing interface{}, detail string) Activity {
   // todo: set these values based on provided
+  upload := thing.(Upload)
+
   return Activity{
     "upload",
     "created",
     "<no infohash until processed>",
     "captainwiggles",
     detail,
-    thing,
+    upload,
   }
 }
 
@@ -119,7 +122,7 @@ func LogEvent(conn redis.Conn, event AuditEvent) {
     "trail", trailMarker,
     "status", event.Status,
     "bytes", event.Bytes,
-    "username", event.Username,
+    "user", event.User,
     "ref", event.Ref,
   )
 
@@ -132,15 +135,22 @@ func LogEvent(conn redis.Conn, event AuditEvent) {
 }
 
 func LogUserActivity(conn redis.Conn, activity Activity) {
-  json, err := json.Marshal(activity)
-  if err != nil {
-    log.Printf("Error converting AuditEvent to JSON: %s, %s\n", err, activity)
+  jsonActivity, jerr := json.Marshal(activity)
+  if jerr != nil {
+    log.Printf("Error converting Activity to JSON %s, %s\n", activity, jerr)
     return
   }
 
   _, err := conn.Do(
     "LPUSH",
     buildActivityKey(activity),
-    json,
+    jsonActivity,
   )
+
+  if err != nil {
+    log.Printf("Error storing activity %s, %s\n", activity, err)
+    return
+  }
+
+  log.Printf("Activity logged: %s\n", activity)
 }
