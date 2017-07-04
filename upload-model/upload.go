@@ -3,6 +3,8 @@ package upload
 import (
   "bytes"
   "crypto/sha1"
+  "github.com/barnabyc/upload-service-libs/audit"
+  "github.com/barnabyc/upload-service-libs/types"
   "github.com/garyburd/redigo/redis"
   "github.com/jackpal/bencode-go"
   "log"
@@ -11,13 +13,6 @@ import (
   "time"
   // "github.com/swatkat/gotrntmetainfoparser" // todo: fork and clean-up
 )
-
-type Upload struct {
-  Name     string `redis:"name"     json:"name"`
-  Type     string `redis:"type"     json:"type"`
-  Category string `redis:"category" json:"category"`
-  Path     string `redis:"path"     json:"path"`
-}
 
 // Structs into which torrent metafile is
 // parsed and stored into.
@@ -52,17 +47,34 @@ type MetaInfo struct {
   Encoding     string     "encoding"
 }
 
-func Process(ulid []byte, pool *redis.Pool) {
-  log.Printf("upload.Process: %s\n", ulid)
+func Process(path []byte, pool *redis.Pool) {
+  log.Printf("upload.Process: %s\n", path)
 
   conn := pool.Get()
   defer conn.Close()
 
-  file, err := redis.Bytes(conn.Do("HGET", ulid, "file"))
+  file, err := redis.Bytes(conn.Do("HGET", path, "file"))
   log.Printf("debug: file %s\n", reflect.TypeOf(file))
 
+  var (
+    uploadName     string
+    uploadType     string
+    uploadCategory string
+    uploadFile     []byte
+  )
+  reply, err := redis.Values(conn.Do("HMGET", path, "name", "type", "category", "file"))
   if err != nil {
     log.Printf("Error getting upload %s\n", err)
+    return
+  }
+  if _, err := redis.Scan(
+    reply,
+    &uploadName,
+    &uploadType,
+    &uploadCategory,
+    &uploadFile,
+  ); err != nil {
+    log.Printf("Error converting upload types %s\n", err)
     return
   }
 
@@ -71,6 +83,17 @@ func Process(ulid []byte, pool *redis.Pool) {
   buf := bytes.NewBuffer(file)
 
   if mi.ReadTorrentMetaInfo(buf) {
+    p := types.ProcessedUpload{
+      uploadName,
+      uploadType,
+      uploadCategory,
+      string(path),
+      mi.InfoHash,
+    }
+
+    audit.Log(conn, p, "no additional detail")
+
+    // todo: move this to debug somewhere
     mi.DumpTorrentMetaInfo()
   } else {
     log.Printf("error: could not parse upload\n")

@@ -3,7 +3,7 @@ package audit
 import (
   "encoding/json"
   "fmt"
-  "github.com/barnabyc/upload-service-libs/upload-model"
+  "github.com/barnabyc/upload-service-libs/types"
   "github.com/garyburd/redigo/redis"
   "github.com/oklog/ulid"
   "log"
@@ -28,12 +28,11 @@ type AuditEvent struct {
 }
 
 type Activity struct {
-  Activity string        `json:"activity"`
-  Result   string        `json:"result"`
-  Infohash string        `json:"infohash"`
-  User     string        `json:"user"`
-  Key      string        `json:"key"`
-  Ref      upload.Upload `json:"ref"`
+  Activity string      `json:"activity"`
+  Result   string      `json:"result"`
+  User     string      `json:"user"`
+  Key      string      `json:"key"`
+  Ref      interface{} `json:"ref"`
 }
 
 func getDateStamp(t time.Time) string {
@@ -76,17 +75,23 @@ func buildSimpleEvent(thing interface{}, detail string) AuditEvent {
   }
 }
 
-func buildActivity(thing interface{}, detail string) Activity {
-  // todo: set these values based on provided
-  upload := thing.(upload.Upload)
-
+func buildUploadActivity(upload types.Upload, detail string) Activity {
   return Activity{
     "upload",
     "created",
-    "<no infohash until processed>",
     "captainwiggles",
     detail,
     upload,
+  }
+}
+
+func buildProcessedUploadActivity(p types.ProcessedUpload, detail string) Activity {
+  return Activity{
+    "upload",
+    "processed",
+    "captainwiggles",
+    detail,
+    p,
   }
 }
 
@@ -99,7 +104,16 @@ func Log(conn redis.Conn, thing interface{}, detail string) {
   auditEvent := buildSimpleEvent(thing, detail)
   LogEvent(conn, auditEvent)
 
-  activity := buildActivity(thing, detail)
+  var activity Activity
+  switch thing.(type) {
+  case types.Upload:
+    activity = buildUploadActivity(thing.(types.Upload), detail)
+  case types.ProcessedUpload:
+    activity = buildProcessedUploadActivity(thing.(types.ProcessedUpload), detail)
+  default:
+    log.Printf("Unknown type of thing passed to log %s\n", thing)
+  }
+
   LogUserActivity(conn, activity)
 }
 
